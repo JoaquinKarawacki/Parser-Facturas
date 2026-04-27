@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
  
 COLUMNAS_SALIDA = [
     "archivo","nro_cuenta","nro_factura","fecha_emision","prox_vencimiento",
-    "acuerdo_servicio","nro_medidor","tarifa_aplicada","nombre_cliente",
-    "direccion_cliente","localidad_cliente","departamento_cliente",
+    "acuerdo_servicio","nro_medidor","tarifa_aplicada",
+    "nombre_cliente","direccion_cliente","localidad_cliente","departamento_cliente",
     "potencia_contratada_punta_llano_kw","potencia_contratada_valle_kw",
     "consumo_activo_kwh","consumo_reactivo_kvarh","tension","fases",
     "direccion_servicio","periodo_consumo","zona_electrica",
@@ -22,6 +22,12 @@ COLUMNAS_SALIDA = [
     "energa_punta_tipo_lec","energa_punta_total",
     "energa_reactiva_factor","energa_reactiva_lect_act","energa_reactiva_lect_ant",
     "energa_reactiva_tipo_lec","energa_reactiva_total",
+    "energa_sal_llano_factor","energa_sal_llano_lect_act","energa_sal_llano_lect_ant",
+    "energa_sal_llano_tipo_lec","energa_sal_llano_total",
+    "energa_sal_punta_factor","energa_sal_punta_lect_act","energa_sal_punta_lect_ant",
+    "energa_sal_punta_tipo_lec","energa_sal_punta_total",
+    "energa_sal_valle_factor","energa_sal_valle_lect_act","energa_sal_valle_lect_ant",
+    "energa_sal_valle_tipo_lec","energa_sal_valle_total",
     "energa_valle_factor","energa_valle_lect_act","energa_valle_lect_ant",
     "energa_valle_tipo_lec","energa_valle_total",
     "npags_pdf",
@@ -359,25 +365,37 @@ def extract_lecturas_pivotadas(pdf_path):
  
     # Mapeo: orden importa — más específico primero
     MAPEO=[
-        ("potencia valle",  "potencia_valle"),
-        ("potencia punta",  "potencia"),
-        ("potencia llano",  "potencia"),
-        ("potencia",        "potencia"),
-        ("energ\xe9a punta","energa_punta"),
-        ("energ\xe9a valle","energa_valle"),
-        ("energ\xe9a llano","energa_llano"),
-        ("energ\xe9a reactiva q4","energa_reactiva"),  # Q4 se suma a reactiva
-        ("energ\xe9a reactiva","energa_reactiva"),
-        ("energia punta",   "energa_punta"),
-        ("energia valle",   "energa_valle"),
-        ("energia llano",   "energa_llano"),
-        ("energia reactiva q4","energa_reactiva"),
-        ("energia reactiva","energa_reactiva"),
-        ("punta",           "energa_punta"),
-        ("valle",           "energa_valle"),
-        ("llano",           "energa_llano"),
-        ("reactiva q4",     "energa_reactiva"),
-        ("reactiva",        "energa_reactiva"),
+        # Potencia
+        ("potencia valle",          "potencia_valle"),
+        ("potencia punta",          "potencia"),
+        ("potencia llano",          "potencia"),
+        ("potencia",                "potencia"),
+        # Energía Sal. (salida) — más específico antes que genérico
+        ("energ\xe9a sal. punta",  "energa_sal_punta"),
+        ("energ\xe9a sal. valle",  "energa_sal_valle"),
+        ("energ\xe9a sal. llano",  "energa_sal_llano"),
+        ("energia sal. punta",      "energa_sal_punta"),
+        ("energia sal. valle",      "energa_sal_valle"),
+        ("energia sal. llano",      "energa_sal_llano"),
+        ("energ\xe9a sal punta",   "energa_sal_punta"),
+        ("energ\xe9a sal valle",   "energa_sal_valle"),
+        ("energ\xe9a sal llano",   "energa_sal_llano"),
+        ("energia sal punta",       "energa_sal_punta"),
+        ("energia sal valle",       "energa_sal_valle"),
+        ("energia sal llano",       "energa_sal_llano"),
+        # Energía genérica
+        ("energ\xe9a punta",       "energa_punta"),
+        ("energ\xe9a valle",       "energa_valle"),
+        ("energ\xe9a llano",       "energa_llano"),
+        ("energ\xe9a reactiva",    "energa_reactiva"),
+        ("energia punta",           "energa_punta"),
+        ("energia valle",           "energa_valle"),
+        ("energia llano",           "energa_llano"),
+        ("energia reactiva",        "energa_reactiva"),
+        ("punta",                   "energa_punta"),
+        ("valle",                   "energa_valle"),
+        ("llano",                   "energa_llano"),
+        ("reactiva",                "energa_reactiva"),
     ]
  
     result={}
@@ -443,3 +461,4 @@ def _construir_registro(datos):
 def registro_vacio(nombre_archivo, error):
     d={col:None for col in COLUMNAS_SALIDA}; d["archivo"]=nombre_archivo; d["_error"]=error
     return d
+ 
