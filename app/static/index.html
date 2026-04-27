@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Extractor de Facturas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:         #0d1117;
+      --surface:    #161b22;
+      --surface2:   #1f2937;
+      --border:     #30363d;
+      --accent:     #3b82f6;
+      --accent-dim: #1d4ed8;
+      --success:    #22c55e;
+      --error:      #ef4444;
+      --warn:       #f59e0b;
+      --text:       #e6edf3;
+      --text-dim:   #8b949e;
+      --radius:     10px;
+      --font:       'DM Sans', sans-serif;
+      --mono:       'DM Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px 80px;
+    }
+
+    /* ── Header ───────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .logo {
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .logo img {
+      height: 90px;
+      width: auto;
+      filter: drop-shadow(0 4px 16px rgba(204,27,27,0.35));
+    }
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+    .subtitulo {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      font-weight: 300;
+    }
+
+    /* ── Card principal ───────────────────────────── */
+    .card {
+      width: 100%;
+      max-width: 680px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Zona de drop ─────────────────────────────── */
+    .zona-drop {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 52px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .zona-drop:hover, .zona-drop.arrastrado {
+      border-color: var(--accent);
+      background: rgba(59,130,246,0.05);
+    }
+    .zona-drop input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icono { font-size: 2.4rem; margin-bottom: 12px; }
+    .drop-titulo {
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .drop-hint {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+
+    /* ── Lista de archivos ────────────────────────── */
+    #lista-archivos { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .archivo-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.87rem;
+    }
+    .archivo-icono { font-size: 1.1rem; flex-shrink: 0; }
+    .archivo-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .archivo-tam { color: var(--text-dim); font-family: var(--mono); font-size: 0.8rem; flex-shrink: 0; }
+    .archivo-remove {
+      background: none; border: none; color: var(--text-dim);
+      cursor: pointer; font-size: 1rem; flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .archivo-remove:hover { color: var(--error); }
+
+    /* ── Botón procesar ───────────────────────────── */
+    .btn-procesar {
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-procesar:hover:not(:disabled) { background: var(--accent-dim); }
+    .btn-procesar:active:not(:disabled) { transform: scale(0.99); }
+    .btn-procesar:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Progreso ─────────────────────────────────── */
+    #zona-progreso { display: none; margin-top: 28px; }
+    .barra-fondo {
+      background: var(--surface2);
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .barra-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #8b5cf6);
+      border-radius: 999px;
+      width: 0%;
+      transition: width 0.4s ease;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0%   { filter: brightness(1); }
+      50%  { filter: brightness(1.3); }
+      100% { filter: brightness(1); }
+    }
+    .progreso-texto {
+      font-size: 0.83rem;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    /* ── Resultado ────────────────────────────────── */
+    #zona-resultado { display: none; margin-top: 24px; }
+
+    .alerta {
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      font-size: 0.9rem;
+      border: 1px solid;
+      margin-bottom: 12px;
+    }
+    .alerta-exito  { background: rgba(34,197,94,0.08);  border-color: rgba(34,197,94,0.3);  color: #86efac; }
+    .alerta-error  { background: rgba(239,68,68,0.08);  border-color: rgba(239,68,68,0.3);  color: #fca5a5; }
+    .alerta-warn   { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); color: #fcd34d; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .stat-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 1.9rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); }
+
+    .btn-descargar {
+      width: 100%;
+      padding: 14px;
+      background: var(--success);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-descargar:hover { background: #16a34a; }
+    .btn-descargar:active { transform: scale(0.99); }
+
+    .btn-nuevo {
+      width: 100%;
+      margin-top: 10px;
+      padding: 11px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-nuevo:hover { border-color: var(--text-dim); color: var(--text); }
+
+    /* ── Footer ───────────────────────────────────── */
+    footer {
+      margin-top: 48px;
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      text-align: center;
+    }
+    footer span { opacity: 0.5; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <img src="/static/img/logo.png" alt="SEG Ingeniería" />
+  </div>
+  <h1>Extractor de Facturas</h1>
+  <p class="subtitulo">SEG Ingeniería · Sube PDFs · Extrae datos · Descarga Excel</p>
+</header>
+
+<div class="card">
+
+  <!-- Zona de carga -->
+  <div class="zona-drop" id="zona-drop">
+    <input type="file" id="input-archivos" accept=".pdf" multiple />
+    <div class="drop-icono">📄</div>
+    <p class="drop-titulo">Arrastrá tus facturas aquí</p>
+    <p class="drop-hint">o hacé clic para seleccionar · Solo PDF · Máx. 20 MB c/u</p>
+  </div>
+
+  <div id="lista-archivos"></div>
+
+  <button class="btn-procesar" id="btn-procesar" disabled>
+    Procesar facturas
+  </button>
+
+  <!-- Progreso -->
+  <div id="zona-progreso">
+    <div class="barra-fondo"><div class="barra-fill" id="barra-fill"></div></div>
+    <p class="progreso-texto" id="progreso-texto">Preparando...</p>
+  </div>
+
+  <!-- Resultado -->
+  <div id="zona-resultado"></div>
+
+</div>
+
+<footer>
+  <span>Los archivos se eliminan del servidor tras la descarga · Sin almacenamiento permanente</span><br/>
+  <span>Desarrollado por Joaquín Karawacki · SEG Ingeniería</span>
+</footer>
+
+<script>
+  const inputArchivos   = document.getElementById('input-archivos');
+  const zonaDrop        = document.getElementById('zona-drop');
+  const listaArchivos   = document.getElementById('lista-archivos');
+  const btnProcesar     = document.getElementById('btn-procesar');
+  const zonaProgreso    = document.getElementById('zona-progreso');
+  const barraFill       = document.getElementById('barra-fill');
+  const progresoTexto   = document.getElementById('progreso-texto');
+  const zonaResultado   = document.getElementById('zona-resultado');
+
+  let archivosSeleccionados = [];
+
+  // ── Drag & Drop ──────────────────────────────────────────
+  zonaDrop.addEventListener('dragover', e => { e.preventDefault(); zonaDrop.classList.add('arrastrado'); });
+  zonaDrop.addEventListener('dragleave', () => zonaDrop.classList.remove('arrastrado'));
+  zonaDrop.addEventListener('drop', e => {
+    e.preventDefault();
+    zonaDrop.classList.remove('arrastrado');
+    agregarArchivos([...e.dataTransfer.files]);
+  });
+  inputArchivos.addEventListener('change', () => {
+    agregarArchivos([...inputArchivos.files]);
+    inputArchivos.value = '';
+  });
+
+  function agregarArchivos(nuevos) {
+    const validos = nuevos.filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+    archivosSeleccionados = [...archivosSeleccionados, ...validos];
+    renderizarLista();
+  }
+
+  function renderizarLista() {
+    listaArchivos.innerHTML = '';
+    archivosSeleccionados.forEach((archivo, i) => {
+      const item = document.createElement('div');
+      item.className = 'archivo-item';
+      item.innerHTML = `
+        <span class="archivo-icono">📄</span>
+        <span class="archivo-nombre" title="${archivo.name}">${archivo.name}</span>
+        <span class="archivo-tam">${formatearTam(archivo.size)}</span>
+        <button class="archivo-remove" data-idx="${i}" title="Eliminar">✕</button>
+      `;
+      listaArchivos.appendChild(item);
+    });
+    listaArchivos.querySelectorAll('.archivo-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        archivosSeleccionados.splice(+btn.dataset.idx, 1);
+        renderizarLista();
+      });
+    });
+    btnProcesar.disabled = archivosSeleccionados.length === 0;
+  }
+
+  function formatearTam(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  // ── Procesamiento ────────────────────────────────────────
+  btnProcesar.addEventListener('click', async () => {
+    if (!archivosSeleccionados.length) return;
+
+    // UI: mostrar progreso
+    btnProcesar.disabled = true;
+    zonaResultado.style.display = 'none';
+    zonaResultado.innerHTML = '';
+    zonaProgreso.style.display = 'block';
+    setProgreso(10, 'Subiendo archivos...');
+
+    const formData = new FormData();
+    archivosSeleccionados.forEach(f => formData.append('archivos', f));
+
+    try {
+      setProgreso(30, 'Procesando PDFs...');
+      const resp = await fetch('/api/v1/procesar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      setProgreso(70, 'Generando Excel...');
+      const data = await resp.json();
+
+      setProgreso(100, 'Listo');
+
+      setTimeout(() => {
+        zonaProgreso.style.display = 'none';
+        barraFill.style.width = '0%';
+
+        if (!resp.ok) {
+          mostrarError(data.detail || 'Error desconocido.');
+          btnProcesar.disabled = false;
+          return;
+        }
+
+        mostrarExito(data);
+      }, 400);
+
+    } catch (err) {
+      zonaProgreso.style.display = 'none';
+      mostrarError('Error de red: ' + err.message);
+      btnProcesar.disabled = false;
+    }
+  });
+
+  function setProgreso(pct, texto) {
+    barraFill.style.width = pct + '%';
+    progresoTexto.textContent = texto;
+  }
+
+  function mostrarExito(data) {
+    const errores = data.facturas_con_error || [];
+    const warnings = data.advertencias_validacion || [];
+
+    let html = `
+      <div class="alerta alerta-exito">
+        ✅ Procesamiento completado correctamente.
+      </div>
+      <div class="stats">
+        <div class="stat-box">
+          <span class="stat-num">${data.facturas_procesadas}</span>
+          <span class="stat-label">Facturas procesadas</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" style="color:var(--success)">${data.facturas_procesadas - errores.length}</span>
+          <span class="stat-label">Exitosas</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" style="color:${errores.length ? 'var(--error)' : 'var(--text-dim)'}">${errores.length}</span>
+          <span class="stat-label">Con errores</span>
+        </div>
+      </div>`;
+
+    if (errores.length) {
+      html += `<div class="alerta alerta-warn">⚠️ Archivos con errores: ${errores.join(', ')}</div>`;
+    }
+    if (warnings.length) {
+      html += `<div class="alerta alerta-warn">⚠️ ${warnings.join('<br>')}</div>`;
+    }
+
+    html += `
+      <button class="btn-descargar" onclick="descargarExcel('${data.id_excel}')">
+        ⬇️ Descargar Excel consolidado
+      </button>
+      <button class="btn-nuevo" onclick="reiniciar()">
+        Procesar nuevas facturas
+      </button>`;
+
+    zonaResultado.innerHTML = html;
+    zonaResultado.style.display = 'block';
+  }
+
+  function mostrarError(mensaje) {
+    zonaResultado.innerHTML = `
+      <div class="alerta alerta-error">❌ ${mensaje}</div>`;
+    zonaResultado.style.display = 'block';
+  }
+
+  async function descargarExcel(idExcel) {
+    try {
+      const resp = await fetch(`/api/v1/descargar/${idExcel}`);
+      if (!resp.ok) {
+        const err = await resp.json();
+        mostrarError(err.detail || 'No se pudo descargar el archivo.');
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'facturas_consolidadas.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      mostrarError('Error al descargar: ' + err.message);
+    }
+  }
+
+  function reiniciar() {
+    archivosSeleccionados = [];
+    renderizarLista();
+    zonaResultado.style.display = 'none';
+    zonaResultado.innerHTML = '';
+    btnProcesar.disabled = true;
+  }
+</script>
+</body>
+</html>
