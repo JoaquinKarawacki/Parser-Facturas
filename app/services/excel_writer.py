@@ -16,7 +16,19 @@ from openpyxl.styles import (
 from openpyxl.utils import get_column_letter
  
 from app.parser.extractor import COLUMNAS_SALIDA
-from app.parser.normalizer import CAMPOS_NUMERICOS, CAMPOS_FECHA, CAMPOS_ENTEROS
+ 
+# Campos que deben tratarse como numéricos en el Excel
+CAMPOS_NUMERICOS = {
+    c for c in COLUMNAS_SALIDA
+    if any(c.endswith(s) for s in (
+        "_factor", "_lect_act", "_lect_ant", "_total",
+        "consumo_activo_kwh", "consumo_reactivo_kvarh",
+        "potencia_contratada_valle_kw", "total_detalle_facturacion",
+    ))
+}
+ 
+CAMPOS_ENTEROS = {"npags_pdf", "fases"}
+CAMPOS_FECHA   = {"fecha_emision", "prox_vencimiento"}
  
 logger = logging.getLogger(__name__)
  
