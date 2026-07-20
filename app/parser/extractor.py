@@ -33,6 +33,10 @@ COLUMNAS_SALIDA = [
     "npags_pdf",
     "potencia_factor","potencia_lect_act","potencia_lect_ant",
     "potencia_tipo_lec","potencia_total",
+    "potencia_llano_factor","potencia_llano_lect_act","potencia_llano_lect_ant",
+    "potencia_llano_tipo_lec","potencia_llano_total",
+    "potencia_punta_factor","potencia_punta_lect_act","potencia_punta_lect_ant",
+    "potencia_punta_tipo_lec","potencia_punta_total",
     "potencia_valle_factor","potencia_valle_lect_act","potencia_valle_lect_ant",
     "potencia_valle_tipo_lec","potencia_valle_total",
 ]
@@ -367,8 +371,8 @@ def extract_lecturas_pivotadas(pdf_path):
     MAPEO=[
         # Potencia
         ("potencia valle",          "potencia_valle"),
-        ("potencia punta",          "potencia"),
-        ("potencia llano",          "potencia"),
+        ("potencia punta",          "potencia_punta"),
+        ("potencia llano",          "potencia_llano"),
         ("potencia",                "potencia"),
         # Energía Sal. (salida) — más específico antes que genérico
         ("energ\xe9a sal. punta",  "energa_sal_punta"),
