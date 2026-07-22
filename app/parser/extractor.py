@@ -22,6 +22,8 @@ COLUMNAS_SALIDA = [
     "energa_punta_tipo_lec","energa_punta_total",
     "energa_reactiva_factor","energa_reactiva_lect_act","energa_reactiva_lect_ant",
     "energa_reactiva_tipo_lec","energa_reactiva_total",
+    "energa_reactiva_q4_factor","energa_reactiva_q4_lect_act","energa_reactiva_q4_lect_ant",
+    "energa_reactiva_q4_tipo_lec","energa_reactiva_q4_total",
     "energa_sal_llano_factor","energa_sal_llano_lect_act","energa_sal_llano_lect_ant",
     "energa_sal_llano_tipo_lec","energa_sal_llano_total",
     "energa_sal_punta_factor","energa_sal_punta_lect_act","energa_sal_punta_lect_ant",
@@ -391,6 +393,9 @@ def extract_lecturas_pivotadas(pdf_path):
         ("energ\xe9a punta",       "energa_punta"),
         ("energ\xe9a valle",       "energa_valle"),
         ("energ\xe9a llano",       "energa_llano"),
+        # Reactiva Q4 — más específico, debe ir antes que "reactiva" genérica
+        ("energ\xe9a reactiva q4", "energa_reactiva_q4"),
+        ("energia reactiva q4",     "energa_reactiva_q4"),
         ("energ\xe9a reactiva",    "energa_reactiva"),
         ("energia punta",           "energa_punta"),
         ("energia valle",           "energa_valle"),
@@ -399,38 +404,26 @@ def extract_lecturas_pivotadas(pdf_path):
         ("punta",                   "energa_punta"),
         ("valle",                   "energa_valle"),
         ("llano",                   "energa_llano"),
+        ("reactiva q4",             "energa_reactiva_q4"),
         ("reactiva",                "energa_reactiva"),
     ]
  
     result={}
-    # FIX: Energía Reactiva = suma de Reactiva + Reactiva Q4
-    # Primero acumular los totales de reactiva
-    reactiva_total_sum = None
  
     for r in rows:
         tl=r["tipo"].lower()
         pref=next((v for k,v in MAPEO if k in tl), None)
         if pref is None:
             cb=re.sub(r"\s+","_",tl); cb=re.sub(r"[^a-z0-9_]","",cb); pref=cb
- 
-        # Para reactiva, acumular totales de Reactiva + Reactiva Q4
-        if pref=="energa_reactiva":
-            t=_to_num(r["total"])
-            if isinstance(t,(int,float)):
-                reactiva_total_sum=(reactiva_total_sum or 0)+t
- 
-        # Solo escribir si el prefijo no existe aún (el primero gana, salvo reactiva)
+
+        # Solo escribir si el prefijo no existe aún (el primero gana)
         if f"{pref}_lect_ant" not in result:
             result[f"{pref}_lect_ant"]=r["lect_ant"]
             result[f"{pref}_lect_act"]=r["lect_act"]
             result[f"{pref}_factor"]=r["factor"]
             result[f"{pref}_total"]=r["total"]
             result[f"{pref}_tipo_lec"]=r["tipo_lec"]
- 
-    # Aplicar suma de reactiva si corresponde
-    if reactiva_total_sum is not None:
-        result["energa_reactiva_total"]=str(int(reactiva_total_sum)) if isinstance(reactiva_total_sum,float) and reactiva_total_sum.is_integer() else str(reactiva_total_sum)
- 
+
     return result
  
 def extraer_factura(ruta_pdf: Path) -> dict:
